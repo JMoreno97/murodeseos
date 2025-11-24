@@ -1,20 +1,91 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [successMessage, setSuccessMessage] = useState('')
+    const [emailError, setEmailError] = useState('')
+
+    // Función para validar formato de email
+    const validateEmail = (email: string): boolean => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        return emailRegex.test(email)
+    }
+
+    // Verificar si viene desde registro exitoso
+    useEffect(() => {
+        if (searchParams.get('registered') === 'true') {
+            setSuccessMessage('¡Cuenta creada exitosamente! Por favor, inicia sesión.')
+        }
+    }, [searchParams])
+
+    // Validar email cuando cambia
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newEmail = e.target.value
+        setEmail(newEmail)
+
+        if (newEmail && !validateEmail(newEmail)) {
+            setEmailError('Por favor, introduce un correo electrónico válido')
+        } else {
+            setEmailError('')
+        }
+    }
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError('')
+        setSuccessMessage('')
+
+        // Validar formato de email antes de enviar
+        if (!validateEmail(email)) {
+            setEmailError('Por favor, introduce un correo electrónico válido')
+            return
+        }
+
         setLoading(true)
-        // TODO: Implement login logic
-        console.log('Login attempt:', email)
-        setTimeout(() => setLoading(false), 1000)
+
+        try {
+            // Intentar iniciar sesión
+            const { data, error: loginError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            })
+
+            if (loginError) {
+                // Manejar diferentes tipos de errores
+                if (loginError.message.includes('Invalid login credentials') ||
+                    loginError.message.includes('Invalid') ||
+                    loginError.message.includes('credentials')) {
+                    setError('Correo electrónico o contraseña incorrectos')
+                } else if (loginError.message.includes('Email not confirmed')) {
+                    setError('Por favor, confirma tu correo electrónico antes de iniciar sesión')
+                } else {
+                    setError(loginError.message)
+                }
+                setLoading(false)
+                return
+            }
+
+            // Login exitoso
+            console.log('Usuario autenticado exitosamente:', data)
+
+            // Redirigir a la página principal
+            router.push('/')
+
+        } catch (err) {
+            console.error('Error durante el inicio de sesión:', err)
+            setError('Ocurrió un error inesperado. Por favor, intenta de nuevo.')
+            setLoading(false)
+        }
     }
 
     return (
@@ -29,6 +100,20 @@ export default function LoginPage() {
                     </p>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+                    {successMessage && (
+                        <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-800">
+                            <div className="flex">
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
+                                        ¡Éxito!
+                                    </h3>
+                                    <div className="mt-2 text-sm text-green-700 dark:text-green-400">
+                                        <p>{successMessage}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {error && (
                         <div className="rounded-md bg-urgencia-coral/10 p-4 border border-urgencia-coral/20">
                             <div className="flex">
@@ -55,11 +140,17 @@ export default function LoginPage() {
                                     type="email"
                                     autoComplete="email"
                                     required
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+                                    className={`block w-full rounded-lg border ${emailError
+                                        ? 'border-urgencia-coral focus:border-urgencia-coral focus:ring-urgencia-coral'
+                                        : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
+                                        } px-3 py-2 shadow-sm focus:outline-none sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors`}
                                     placeholder="tu@ejemplo.com"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={handleEmailChange}
                                 />
+                                {emailError && (
+                                    <p className="mt-1 text-sm text-urgencia-coral">{emailError}</p>
+                                )}
                             </div>
                         </div>
 

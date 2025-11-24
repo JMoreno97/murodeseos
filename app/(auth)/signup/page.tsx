@@ -12,10 +12,53 @@ export default function SignupPage() {
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [emailError, setEmailError] = useState('')
+    const [confirmEmailError, setConfirmEmailError] = useState('')
+
+    // Función para validar formato de email
+    const validateEmail = (email: string): boolean => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        return emailRegex.test(email)
+    }
+
+    // Validar email principal cuando cambia
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newEmail = e.target.value
+        setEmail(newEmail)
+
+        if (newEmail && !validateEmail(newEmail)) {
+            setEmailError('Por favor, introduce un correo electrónico válido')
+        } else {
+            setEmailError('')
+        }
+    }
+
+    // Validar email de confirmación cuando cambia
+    const handleConfirmEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newConfirmEmail = e.target.value
+        setConfirmEmail(newConfirmEmail)
+
+        if (newConfirmEmail && !validateEmail(newConfirmEmail)) {
+            setConfirmEmailError('Por favor, introduce un correo electrónico válido')
+        } else {
+            setConfirmEmailError('')
+        }
+    }
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
+
+        // Validar formato de email
+        if (!validateEmail(email)) {
+            setEmailError('Por favor, introduce un correo electrónico válido')
+            return
+        }
+
+        if (!validateEmail(confirmEmail)) {
+            setConfirmEmailError('Por favor, introduce un correo electrónico válido')
+            return
+        }
 
         // Validar que los correos coincidan
         if (email !== confirmEmail) {
@@ -97,11 +140,17 @@ export default function SignupPage() {
                                     type="email"
                                     autoComplete="email"
                                     required
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+                                    className={`block w-full rounded-lg border ${emailError
+                                            ? 'border-urgencia-coral focus:border-urgencia-coral focus:ring-urgencia-coral'
+                                            : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
+                                        } px-3 py-2 shadow-sm focus:outline-none sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors`}
                                     placeholder="tu@ejemplo.com"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={handleEmailChange}
                                 />
+                                {emailError && (
+                                    <p className="mt-1 text-sm text-urgencia-coral">{emailError}</p>
+                                )}
                             </div>
                         </div>
 
@@ -116,11 +165,17 @@ export default function SignupPage() {
                                     type="email"
                                     autoComplete="email"
                                     required
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+                                    className={`block w-full rounded-lg border ${confirmEmailError
+                                            ? 'border-urgencia-coral focus:border-urgencia-coral focus:ring-urgencia-coral'
+                                            : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
+                                        } px-3 py-2 shadow-sm focus:outline-none sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors`}
                                     placeholder="tu@ejemplo.com"
                                     value={confirmEmail}
-                                    onChange={(e) => setConfirmEmail(e.target.value)}
+                                    onChange={handleConfirmEmailChange}
                                 />
+                                {confirmEmailError && (
+                                    <p className="mt-1 text-sm text-urgencia-coral">{confirmEmailError}</p>
+                                )}
                             </div>
                         </div>
 
