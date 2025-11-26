@@ -12,6 +12,7 @@ interface GroupsTabProps {
 
 export function GroupsTab({ userId }: GroupsTabProps) {
     const [groups, setGroups] = useState<Group[]>([])
+    const [loading, setLoading] = useState(true)
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
     const [renameModalOpen, setRenameModalOpen] = useState(false);
@@ -21,7 +22,26 @@ export function GroupsTab({ userId }: GroupsTabProps) {
     const [groupToDelete, setGroupToDelete] = useState<{ id: string, name: string } | null>(null);
     const [userRoles, setUserRoles] = useState<Map<string, string>>(new Map());
 
-    const fetchUserGroups = async (userId: string) => {
+    const fetchUserGroups = async (userId: string, useCache: boolean = true) => {
+        // Check cache first
+        if (useCache) {
+            const cachedData = sessionStorage.getItem(`groups_${userId}`);
+            if (cachedData) {
+                try {
+                    const { groups: cachedGroups, roles: cachedRoles, timestamp } = JSON.parse(cachedData);
+                    // Cache válida por 5 minutos
+                    if (Date.now() - timestamp < 5 * 60 * 1000) {
+                        setGroups(cachedGroups);
+                        setUserRoles(new Map(cachedRoles));
+                        setLoading(false);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Error parsing cache:', e);
+                }
+            }
+        }
+
         try {
             const { data: myMemberships, error: membershipError } = await supabase
                 .from('group_members')
@@ -36,6 +56,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
             if (!myMemberships || myMemberships.length === 0) {
                 console.log('No memberships found for user')
                 setGroups([])
+                setLoading(false)
                 return
             }
 
@@ -116,13 +137,23 @@ export function GroupsTab({ userId }: GroupsTabProps) {
             console.log('Formatted groups:', formattedGroups)
             setGroups(formattedGroups)
 
+            // Save to cache
+            sessionStorage.setItem(`groups_${userId}`, JSON.stringify({
+                groups: formattedGroups,
+                roles: Array.from(rolesMap.entries()),
+                timestamp: Date.now()
+            }));
+
         } catch (error) {
             console.error('Error fetching groups:', error)
             console.error('Error details:', JSON.stringify(error, null, 2))
+        } finally {
+            setLoading(false)
         }
     }
 
     useEffect(() => {
+        setLoading(true)
         fetchUserGroups(userId)
     }, [userId])
 
@@ -180,6 +211,9 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                 g.id === groupToRename.id ? { ...g, name: newName.trim() } : g
             ));
 
+            // Invalidate cache
+            sessionStorage.removeItem(`groups_${userId}`);
+
             setRenameModalOpen(false);
             setGroupToRename(null);
         } catch (error) {
@@ -201,6 +235,9 @@ export function GroupsTab({ userId }: GroupsTabProps) {
 
             setGroups(groups.filter(g => g.id !== groupToDelete.id));
 
+            // Invalidate cache
+            sessionStorage.removeItem(`groups_${userId}`);
+
             setDeleteModalOpen(false);
             setGroupToDelete(null);
         } catch (error) {
@@ -208,6 +245,17 @@ export function GroupsTab({ userId }: GroupsTabProps) {
             alert('Error al eliminar el grupo');
         }
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-4">
+                <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                    <p className="text-zinc-500 dark:text-zinc-400 font-medium">Cargando grupos...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-black p-4 pb-24">
