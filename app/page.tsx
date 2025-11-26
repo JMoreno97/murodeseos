@@ -81,8 +81,12 @@ export default function Home() {
 
       // 6. Assemble the data
       const formattedGroups: Group[] = groupsData.map(g => {
-        const groupMembers = membersData
-          .filter(m => m.group_id === g.id)
+        const allGroupMembers = membersData.filter(m => m.group_id === g.id)
+        console.log(`Group ${g.name} - All members:`, allGroupMembers)
+        console.log(`Current userId:`, userId)
+
+        const groupMembers = allGroupMembers
+          .filter(m => m.user_id !== userId) // Exclude current user
           .map(m => {
             const profile = profilesMap.get(m.user_id)
             return {
@@ -91,6 +95,8 @@ export default function Home() {
               avatar: profile?.avatar_url
             }
           })
+
+        console.log(`Group ${g.name} - Members after filter:`, groupMembers)
 
         return {
           id: g.id,
