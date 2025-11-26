@@ -33,8 +33,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     }
 })
 
-// Usuarios de prueba
-const testUsers = [
+// Usuarios de prueba base
+const baseUsers = [
     {
         email: 'maria@test.com',
         password: 'Test123!',
@@ -69,6 +69,18 @@ const testUsers = [
     }
 ]
 
+// Generar 15 usuarios extra
+const extraUsers = Array.from({ length: 15 }, (_, i) => ({
+    email: `user${i + 1}@test.com`,
+    password: 'Test123!',
+    username: `user_${i + 1}`,
+    full_name: `Usuario Prueba ${i + 1}`,
+    display_name: `User ${i + 1}`,
+    avatar_url: `👤`
+}))
+
+const testUsers = [...baseUsers, ...extraUsers]
+
 // Grupos de prueba
 const testGroups = [
     { id: 'FAM001', name: 'Familia García', icon: '👨‍👩‍👧‍👦', creatorEmail: 'maria@test.com' },
@@ -77,8 +89,8 @@ const testGroups = [
     { id: 'SPORT1', name: 'Equipo Fútbol', icon: '⚽', creatorEmail: 'carlos@test.com' }
 ]
 
-// Membresías de grupos
-const groupMemberships = [
+// Membresías base
+const baseMemberships = [
     // Familia García
     { groupId: 'FAM001', memberEmail: 'maria@test.com', role: 'admin' },
     { groupId: 'FAM001', memberEmail: 'juan@test.com', role: 'member' },
@@ -99,6 +111,26 @@ const groupMemberships = [
     { groupId: 'SPORT1', memberEmail: 'juan@test.com', role: 'member' },
     { groupId: 'SPORT1', memberEmail: 'ana@test.com', role: 'member' }
 ]
+
+// Generar membresías extra
+const extraMemberships: { groupId: string, memberEmail: string, role: string }[] = []
+
+extraUsers.forEach((user, i) => {
+    // Todos al grupo Familia (para probar scroll largo)
+    extraMemberships.push({ groupId: 'FAM001', memberEmail: user.email, role: 'member' })
+
+    // Pares al trabajo
+    if (i % 2 === 0) {
+        extraMemberships.push({ groupId: 'WORK01', memberEmail: user.email, role: 'member' })
+    }
+
+    // Cada 3 al club de lectura
+    if (i % 3 === 0) {
+        extraMemberships.push({ groupId: 'BOOK01', memberEmail: user.email, role: 'member' })
+    }
+})
+
+const groupMemberships = [...baseMemberships, ...extraMemberships]
 
 async function createTestData() {
     console.log('🚀 Iniciando creación de datos de prueba...\n')

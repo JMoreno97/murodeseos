@@ -239,3 +239,21 @@ export async function deleteGroup(groupId: string) {
 
     return true
 }
+
+/**
+ * Elimina un miembro de un grupo
+ */
+export async function removeMemberFromGroup(groupId: string, userId: string) {
+    const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+
+    if (error) {
+        console.error('Error removing member:', error)
+        throw new Error('No se pudo eliminar al miembro del grupo')
+    }
+
+    return true
+}
