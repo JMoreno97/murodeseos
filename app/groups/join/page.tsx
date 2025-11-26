@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { joinGroup } from '@/lib/group-utils'
 
-export default function JoinGroupPage() {
+function JoinGroupContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [groupCode, setGroupCode] = useState('')
@@ -157,3 +157,12 @@ export default function JoinGroupPage() {
         </div>
     )
 }
+
+export default function JoinGroupPage() {
+    return (
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Cargando...</div>}>
+            <JoinGroupContent />
+        </Suspense>
+    )
+}
+
