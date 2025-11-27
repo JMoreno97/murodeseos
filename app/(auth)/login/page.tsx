@@ -76,7 +76,7 @@ function LoginContent() {
             }
 
             // Login exitoso
-            console.log('Usuario autenticado exitosamente:', data)
+
 
             if (data.user) {
                 // Forzar actualización del estado de autenticación
@@ -92,13 +92,13 @@ function LoginContent() {
 
                 // Si no hay perfil o no tiene display_name, redirigir a configuración
                 if (!profile || !profile.display_name) {
-                    console.log('Redirigiendo a setup de perfil...')
+
                     // Pequeña pausa para asegurar que la sesión se guarde
                     setTimeout(() => {
                         window.location.href = '/profile/setup'
                     }, 500)
                 } else {
-                    console.log('Redirigiendo a home...')
+
                     setTimeout(() => {
                         window.location.href = '/'
                     }, 500)

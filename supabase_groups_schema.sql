@@ -45,9 +45,26 @@ CREATE POLICY "Solo el creador puede eliminar el grupo"
   USING (creator_id = auth.uid());
 
 -- Políticas para group_members (sin recursión)
-CREATE POLICY "Los miembros pueden ver su propia membresía"
+-- Función auxiliar para evitar recursión infinita en políticas RLS
+CREATE OR REPLACE FUNCTION get_user_group_ids(user_uuid UUID)
+RETURNS TABLE(group_id TEXT) 
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE sql
+AS $$
+  SELECT group_id 
+  FROM group_members 
+  WHERE user_id = user_uuid;
+$$;
+
+-- Política corregida: Los miembros pueden ver a TODOS los miembros de los grupos a los que pertenecen
+CREATE POLICY "Los miembros pueden ver otros miembros de sus grupos"
   ON group_members FOR SELECT
-  USING (user_id = auth.uid());
+  USING (
+    group_id IN (
+      SELECT get_user_group_ids(auth.uid())
+    )
+  );
 
 CREATE POLICY "Los usuarios pueden unirse a grupos"
   ON group_members FOR INSERT

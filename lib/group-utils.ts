@@ -94,7 +94,7 @@ export async function createGroup(params: {
 
     if (memberError) throw memberError
 
-    console.log(`✅ Usuario ${creatorId} añadido como admin del grupo ${groupId}`)
+
 
     return group
 }
@@ -153,7 +153,7 @@ export async function joinGroup(params: {
         throw new Error('No se pudo unir al grupo. Por favor, intenta de nuevo.')
     }
 
-    console.log(`✅ Usuario ${userId} se unió al grupo ${normalizedCode}`)
+
 
     return {
         group,
@@ -186,7 +186,7 @@ export async function shareGroup(groupName: string, groupCode: string): Promise<
             return true
         } catch (error) {
             // Usuario canceló o error
-            console.log('Share cancelled or failed:', error)
+
             return false
         }
     } else {

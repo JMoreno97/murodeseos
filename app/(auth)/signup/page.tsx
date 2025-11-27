@@ -90,7 +90,7 @@ export default function SignupPage() {
             }
 
             // Registro exitoso
-            console.log('Usuario registrado exitosamente:', data)
+
 
             // Redirigir al login con mensaje de éxito
             router.push('/login?registered=true')
@@ -141,8 +141,8 @@ export default function SignupPage() {
                                     autoComplete="email"
                                     required
                                     className={`block w-full rounded-lg border ${emailError
-                                            ? 'border-urgencia-coral focus:border-urgencia-coral focus:ring-urgencia-coral'
-                                            : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
+                                        ? 'border-urgencia-coral focus:border-urgencia-coral focus:ring-urgencia-coral'
+                                        : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
                                         } px-3 py-2 shadow-sm focus:outline-none sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors`}
                                     placeholder="tu@ejemplo.com"
                                     value={email}
@@ -166,8 +166,8 @@ export default function SignupPage() {
                                     autoComplete="email"
                                     required
                                     className={`block w-full rounded-lg border ${confirmEmailError
-                                            ? 'border-urgencia-coral focus:border-urgencia-coral focus:ring-urgencia-coral'
-                                            : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
+                                        ? 'border-urgencia-coral focus:border-urgencia-coral focus:ring-urgencia-coral'
+                                        : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500'
                                         } px-3 py-2 shadow-sm focus:outline-none sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors`}
                                     placeholder="tu@ejemplo.com"
                                     value={confirmEmail}

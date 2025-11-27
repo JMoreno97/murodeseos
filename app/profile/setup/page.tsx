@@ -22,7 +22,7 @@ export default function ProfileSetupPage() {
             const { data: { user } } = await supabase.auth.getUser()
 
             if (!user) {
-                console.log('No se encontró usuario, redirigiendo a login...')
+
                 router.replace('/login')
                 return
             }
@@ -150,8 +150,8 @@ export default function ProfileSetupPage() {
                                                     setShowAvatarModal(false)
                                                 }}
                                                 className={`p-3 text-3xl rounded-xl border-2 transition-all duration-200 hover:scale-110 flex items-center justify-center ${selectedAvatar === emoji
-                                                        ? 'border-deseo-acento bg-deseo-acento/20 scale-110'
-                                                        : 'border-gray-200 dark:border-gray-700 hover:border-deseo-acento/50'
+                                                    ? 'border-deseo-acento bg-deseo-acento/20 scale-110'
+                                                    : 'border-gray-200 dark:border-gray-700 hover:border-deseo-acento/50'
                                                     }`}
                                             >
                                                 {emoji}

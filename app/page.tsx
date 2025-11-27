@@ -20,7 +20,7 @@ export default function Home() {
       const { data: { session }, error } = await supabase.auth.getSession()
 
       if (error || !session?.user) {
-        console.log('No valid session found, redirecting to login')
+
         setUser(null)
         router.push('/login')
         return false

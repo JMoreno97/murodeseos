@@ -54,13 +54,13 @@ export function GroupsTab({ userId }: GroupsTabProps) {
             }
 
             if (!myMemberships || myMemberships.length === 0) {
-                console.log('No memberships found for user')
+
                 setGroups([])
                 setLoading(false)
                 return
             }
 
-            console.log('Found memberships:', myMemberships)
+
             const groupIds = myMemberships.map(m => m.group_id)
 
             const rolesMap = new Map();
@@ -79,7 +79,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                 throw groupsError
             }
 
-            console.log('Found groups:', groupsData)
+
 
             const { data: membersData, error: membersError } = await supabase
                 .from('group_members')
@@ -91,7 +91,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                 throw membersError
             }
 
-            console.log('Found members:', membersData)
+
 
             const userIds = [...new Set(membersData.map(m => m.user_id))]
             const { data: profilesData, error: profilesError } = await supabase
@@ -104,14 +104,13 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                 throw profilesError
             }
 
-            console.log('Found profiles:', profilesData)
+
 
             const profilesMap = new Map(profilesData.map(p => [p.id, p]))
 
             const formattedGroups: Group[] = groupsData.map(g => {
                 const allGroupMembers = membersData.filter(m => m.group_id === g.id)
-                console.log(`Group ${g.name} - All members:`, allGroupMembers)
-                console.log(`Current userId:`, userId)
+
 
                 const groupMembers = allGroupMembers
                     .filter(m => m.user_id !== userId)
@@ -124,7 +123,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                         }
                     })
 
-                console.log(`Group ${g.name} - Members after filter:`, groupMembers)
+
 
                 return {
                     id: g.id,
@@ -134,7 +133,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                 }
             })
 
-            console.log('Formatted groups:', formattedGroups)
+
             setGroups(formattedGroups)
 
             // Save to cache
@@ -146,7 +145,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
 
         } catch (error) {
             console.error('Error fetching groups:', error)
-            console.error('Error details:', JSON.stringify(error, null, 2))
+
         } finally {
             setLoading(false)
         }
@@ -187,7 +186,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                     url: window.location.origin + '/groups/join?code=' + selectedGroupId
                 });
             } catch (err) {
-                console.log('Share cancelled');
+
             }
         } else {
             copyToClipboard();
