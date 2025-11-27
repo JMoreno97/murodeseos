@@ -1,36 +1,45 @@
 import { test, expect } from '@playwright/test'
 
-test.describe('Landing Page', () => {
-    test('should display landing page for non-authenticated users', async ({ page }) => {
+test.describe('Landing Page / Login Redirect', () => {
+    test('should redirect to login page when not authenticated', async ({ page }) => {
         await page.goto('/')
 
-        // Verificar que aparece el título principal
-        await expect(page.getByRole('heading', { name: /muro de deseos/i })).toBeVisible()
-
-        // Verificar que aparecen los botones de login y signup
-        await expect(page.getByRole('link', { name: /iniciar sesión/i })).toBeVisible()
-        await expect(page.getByRole('link', { name: /registrarse/i })).toBeVisible()
-    })
-
-    test('should navigate to login page', async ({ page }) => {
-        await page.goto('/')
-
-        // Click en el botón de login
-        await page.getByRole('link', { name: /iniciar sesión/i }).click()
-
-        // Verificar que estamos en la página de login
+        // El middleware redirige automáticamente a /login
         await expect(page).toHaveURL(/\/login/)
         await expect(page.getByRole('heading', { name: /bienvenido de nuevo/i })).toBeVisible()
     })
 
-    test('should navigate to signup page', async ({ page }) => {
+    test('should display login form elements', async ({ page }) => {
         await page.goto('/')
 
-        // Click en el botón de registro
-        await page.getByRole('link', { name: /registrarse/i }).click()
+        // Verificar que estamos en login
+        await expect(page).toHaveURL(/\/login/)
+
+        // Verificar elementos del formulario
+        await expect(page.getByLabel(/correo electrónico/i)).toBeVisible()
+        await expect(page.getByLabel(/contraseña/i)).toBeVisible()
+        await expect(page.getByRole('button', { name: /iniciar sesión/i })).toBeVisible()
+    })
+
+    test('should navigate to signup from login', async ({ page }) => {
+        await page.goto('/')
+
+        // Estamos en login, click en el enlace de registro
+        await page.getByRole('link', { name: /regístrate/i }).click()
 
         // Verificar que estamos en la página de signup
         await expect(page).toHaveURL(/\/signup/)
         await expect(page.getByRole('heading', { name: /crear una cuenta/i })).toBeVisible()
+    })
+
+    test('should navigate to login from signup', async ({ page }) => {
+        await page.goto('/signup')
+
+        // Click en el enlace de login
+        await page.getByRole('link', { name: /inicia sesión/i }).click()
+
+        // Verificar que estamos en la página de login
+        await expect(page).toHaveURL(/\/login/)
+        await expect(page.getByRole('heading', { name: /bienvenido de nuevo/i })).toBeVisible()
     })
 })
