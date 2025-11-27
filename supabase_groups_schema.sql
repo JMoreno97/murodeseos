@@ -21,6 +21,7 @@ CREATE TABLE group_members (
 -- Índices para mejorar rendimiento
 CREATE INDEX idx_group_members_group_id ON group_members(group_id);
 CREATE INDEX idx_group_members_user_id ON group_members(user_id);
+CREATE INDEX idx_groups_creator_id ON groups(creator_id);
 
 -- Row Level Security (RLS)
 ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
@@ -30,19 +31,19 @@ ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
 -- Permitir que cualquier usuario autenticado vea grupos (la restricción real está en group_members)
 CREATE POLICY "Los grupos son visibles para usuarios autenticados"
   ON groups FOR SELECT
-  USING (auth.uid() IS NOT NULL);
+  USING ((select auth.uid()) IS NOT NULL);
 
 CREATE POLICY "Cualquier usuario autenticado puede crear grupos"
   ON groups FOR INSERT
-  WITH CHECK (auth.uid() = creator_id);
+  WITH CHECK ((select auth.uid()) = creator_id);
 
 CREATE POLICY "Solo el creador puede actualizar el grupo"
   ON groups FOR UPDATE
-  USING (creator_id = auth.uid());
+  USING (creator_id = (select auth.uid()));
 
 CREATE POLICY "Solo el creador puede eliminar el grupo"
   ON groups FOR DELETE
-  USING (creator_id = auth.uid());
+  USING (creator_id = (select auth.uid()));
 
 -- Políticas para group_members (sin recursión)
 -- Función auxiliar para evitar recursión infinita en políticas RLS
@@ -62,14 +63,14 @@ CREATE POLICY "Los miembros pueden ver otros miembros de sus grupos"
   ON group_members FOR SELECT
   USING (
     group_id IN (
-      SELECT get_user_group_ids(auth.uid())
+      SELECT get_user_group_ids((select auth.uid()))
     )
   );
 
 CREATE POLICY "Los usuarios pueden unirse a grupos"
   ON group_members FOR INSERT
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (user_id = (select auth.uid()));
 
 CREATE POLICY "Los usuarios pueden salir de grupos"
   ON group_members FOR DELETE
-  USING (user_id = auth.uid());
+  USING (user_id = (select auth.uid()));

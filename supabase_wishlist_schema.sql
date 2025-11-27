@@ -28,25 +28,65 @@ ALTER TABLE wishlist_items ENABLE ROW LEVEL SECURITY;
 -- 1. LECTURA: Todos los usuarios autenticados pueden ver los items (necesario para ver listas de amigos)
 CREATE POLICY "Usuarios autenticados pueden ver todos los items"
   ON wishlist_items FOR SELECT
-  USING (auth.uid() IS NOT NULL);
+  TO authenticated
+  USING ((select auth.uid()) IS NOT NULL);
 
 -- 2. CREACIÓN: Solo el dueño puede crear items
 CREATE POLICY "Usuarios pueden crear sus propios items"
   ON wishlist_items FOR INSERT
-  WITH CHECK (user_id = auth.uid());
+  TO authenticated
+  WITH CHECK (user_id = (select auth.uid()));
 
--- 3. ACTUALIZACIÓN (Dueño): El dueño puede editar sus items
-CREATE POLICY "Usuarios pueden actualizar sus propios items"
+-- 3. ACTUALIZACIÓN: Unificada (Dueño edita todo, Otros solo reservan)
+-- La lógica de seguridad granular se maneja en el trigger tr_check_wishlist_update
+CREATE POLICY "Usuarios autenticados pueden actualizar items"
   ON wishlist_items FOR UPDATE
-  USING (user_id = auth.uid());
+  TO authenticated
+  USING ( true )
+  WITH CHECK ( true );
 
--- 4. ACTUALIZACIÓN (Reserva): Otros usuarios pueden actualizar el campo reserved_by
-CREATE POLICY "Otros usuarios pueden reservar items"
-  ON wishlist_items FOR UPDATE
-  USING (user_id != auth.uid())
-  WITH CHECK (user_id != auth.uid());
-
--- 5. ELIMINACIÓN: Solo el dueño puede borrar
 CREATE POLICY "Usuarios pueden eliminar sus propios items"
   ON wishlist_items FOR DELETE
-  USING (user_id = auth.uid());
+  TO authenticated
+  USING (user_id = (select auth.uid()));
+
+-- Triggers de Seguridad
+CREATE OR REPLACE FUNCTION public.check_wishlist_update_permissions()
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  current_user_id UUID;
+BEGIN
+  current_user_id := (select auth.uid());
+  
+  -- 1. Nadie puede cambiar el propietario (user_id)
+  IF OLD.user_id IS DISTINCT FROM NEW.user_id THEN
+    RAISE EXCEPTION 'No se permite cambiar el propietario del item.';
+  END IF;
+
+  -- 2. Si soy el dueño, permito la edición
+  IF OLD.user_id = current_user_id THEN
+    RETURN NEW;
+  END IF;
+
+  -- 3. Si NO soy el dueño, solo permito cambiar reserved_by
+  IF OLD.title IS DISTINCT FROM NEW.title OR
+     OLD.links IS DISTINCT FROM NEW.links OR
+     OLD.image_url IS DISTINCT FROM NEW.image_url OR
+     OLD.price IS DISTINCT FROM NEW.price OR
+     OLD.notes IS DISTINCT FROM NEW.notes OR
+     OLD.priority IS DISTINCT FROM NEW.priority THEN
+     RAISE EXCEPTION 'No tienes permiso para editar los detalles de este regalo. Solo puedes reservarlo.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS tr_check_wishlist_update ON wishlist_items;
+CREATE TRIGGER tr_check_wishlist_update
+  BEFORE UPDATE ON wishlist_items
+  FOR EACH ROW
+  EXECUTE FUNCTION public.check_wishlist_update_permissions();
