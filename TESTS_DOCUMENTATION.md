@@ -227,7 +227,8 @@ npm run test:e2e:ui
 ### Para E2E Tests
 1. ✅ El servidor de desarrollo debe estar corriendo en `http://localhost:3000`
 2. ✅ La base de datos debe estar configurada
-3. ⚠️ Los tests E2E requieren autenticación - puede necesitar ajustes según el middleware
+3. ⚠️ **Importante**: Debes ejecutar `npm run seed` antes de los tests para crear los usuarios de prueba (ej: `juan@test.com` / `Test123!`).
+4. ⚠️ Los tests E2E requieren autenticación - puede necesitar ajustes según el middleware
 
 ### Cobertura de Código
 Los tests actuales cubren:

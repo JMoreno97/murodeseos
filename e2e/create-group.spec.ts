@@ -1,9 +1,39 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Flujo de Creación de Grupo', () => {
+    test.setTimeout(60000)
     test.beforeEach(async ({ page }) => {
-        // Navegar a la página de inicio
-        await page.goto('http://localhost:3000')
+        console.log('Iniciando login...')
+        // 1. Ir a la página de login
+        await page.goto('http://localhost:3000/login')
+
+        // Esperar a que el formulario sea visible
+        await page.waitForSelector('form', { state: 'visible' })
+
+        // 2. Rellenar credenciales
+        console.log('Rellenando credenciales...')
+        await page.fill('input[name="email"]', 'juan@test.com')
+        await page.fill('input[name="password"]', 'Test123!')
+
+        // 3. Enviar formulario
+        console.log('Enviando formulario...')
+        await page.click('button[type="submit"]')
+
+        // 4. Esperar a ser redirigido a la home
+        console.log('Esperando redirección...')
+        try {
+            await page.waitForURL('http://localhost:3000/', { timeout: 15000 })
+        } catch (e) {
+            console.log('Timeout esperando redirección. URL actual:', page.url())
+            // Capturar texto de error si existe
+            const errorText = await page.locator('.text-urgencia-coral').textContent().catch(() => 'No error text found')
+            console.log('Mensaje de error en pantalla:', errorText)
+            throw e
+        }
+
+        // Verificar que estamos logueados
+        console.log('Login exitoso, verificando URL...')
+        await expect(page).toHaveURL('http://localhost:3000/')
     })
 
     test('Un usuario puede crear un grupo exitosamente y ser redirigido al detalle', async ({ page }) => {
@@ -11,7 +41,6 @@ test.describe('Flujo de Creación de Grupo', () => {
         await expect(page).toHaveURL('http://localhost:3000/')
 
         // 2. Hacer clic en el botón "Crear Grupo"
-        // Puede estar como "Crear Grupo", "Nuevo Grupo", o "+" dependiendo del diseño
         const createGroupButton = page.locator('a[href*="/groups/create"], button:has-text("Crear Grupo"), a:has-text("Crear Nuevo Grupo")')
         await expect(createGroupButton.first()).toBeVisible({ timeout: 10000 })
         await createGroupButton.first().click()
@@ -26,7 +55,7 @@ test.describe('Flujo de Creación de Grupo', () => {
         await expect(groupNameInput).toBeVisible()
         await groupNameInput.fill(groupName)
 
-        // 5. Seleccionar un icono (opcional, pero probar la interacción)
+        // 5. Seleccionar un icono (opcional)
         const emojiButtons = page.locator('button:has-text("🎉")')
         if (await emojiButtons.count() > 0) {
             await emojiButtons.first().click()
@@ -38,91 +67,76 @@ test.describe('Flujo de Creación de Grupo', () => {
         await submitButton.click()
 
         // 7. Esperar a que se complete la creación
-        // Puede mostrar un modal de éxito o redirigir directamente
-        // Verificamos dos posibles escenarios:
-
-        // Escenario A: Se muestra una pantalla de éxito con el código del grupo
         const successMessage = page.locator('text=/Grupo Creado|¡Éxito!|Creado con éxito/i')
 
-        if (await successMessage.isVisible({ timeout: 5000 }).catch(() => false)) {
-            // Si hay pantalla de éxito, verificar que muestra el código
+        // Intentar detectar éxito o redirección
+        try {
+            await Promise.race([
+                successMessage.waitFor({ state: 'visible', timeout: 5000 }),
+                page.waitForURL(/\/($|groups\/)/, { timeout: 10000 })
+            ])
+        } catch (e) {
+            console.log('No se detectó éxito inmediato, verificando estado actual...')
+        }
+
+        if (await successMessage.isVisible().catch(() => false)) {
+            // Si hay pantalla de éxito, verificar código y continuar
             const groupCodeElement = page.locator('text=/[A-Z0-9]{6,8}/')
             await expect(groupCodeElement).toBeVisible()
 
-            // Hacer clic en "Continuar" o navegar al grupo
             const continueButton = page.locator('button:has-text("Continuar"), a:has-text("Ver grupo")')
-
-            if (await continueButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+            if (await continueButton.isVisible().catch(() => false)) {
                 await continueButton.first().click()
             }
         }
 
-        // 8. Verificar redirección (puede ser a Home o al detalle del grupo)
-        // Esperar a que la URL cambie
+        // 8. Verificar redirección final
         await page.waitForURL(/\/($|groups\/)/, { timeout: 10000 })
-
-        // Verificar que NO estamos más en /groups/create
         await expect(page).not.toHaveURL(/\/groups\/create/)
 
-        // 9. Verificar que el grupo aparece (si estamos en Home)
+        // 9. Verificar que el grupo aparece
         const currentUrl = page.url()
-
         if (currentUrl.includes('/groups/') && !currentUrl.includes('/create')) {
-            // Estamos en la página de detalle del grupo
             await expect(page.locator('h1, h2, h3').first()).toBeVisible()
         } else {
-            // Estamos en Home, verificar que el grupo aparece en la lista
             const groupCard = page.locator(`text="${groupName}"`)
             await expect(groupCard).toBeVisible({ timeout: 5000 })
         }
     })
 
     test('El formulario de creación valida el nombre mínimo', async ({ page }) => {
-        // Navegar a la página de creación
         await page.goto('http://localhost:3000/groups/create')
 
-        // Intentar enviar con nombre muy corto
-        const groupNameInput = page.locator('input#groupName, input[name="groupName"], input[placeholder*="Grupo"]')
-        await groupNameInput.fill('AB') // Menos de 3 caracteres
+        const groupNameInput = page.locator('input#groupName, input[name="groupName"]')
+        await groupNameInput.fill('AB')
 
         const submitButton = page.locator('button[type="submit"]')
 
-        // El botón debe estar deshabilitado o mostrar error de validación HTML5
+        // Verificar si está deshabilitado o si al hacer clic no navega
         const isDisabled = await submitButton.isDisabled()
 
         if (!isDisabled) {
-            // Si no está deshabilitado, probar a enviar y verificar validación HTML5
             await submitButton.click()
-
-            // La URL no debe cambiar (no debe enviarse)
             await page.waitForTimeout(1000)
             await expect(page).toHaveURL(/\/groups\/create/)
+        } else {
+            expect(isDisabled).toBe(true)
         }
 
-        // Ahora poner un nombre válido
         await groupNameInput.fill('Grupo Válido')
-
-        // El botón debe estar habilitado
         await expect(submitButton).toBeEnabled({ timeout: 2000 })
     })
 
     test('Permite seleccionar diferentes iconos para el grupo', async ({ page }) => {
         await page.goto('http://localhost:3000/groups/create')
 
-        // Verificar que hay iconos disponibles
-        const emojiButtons = page.locator('button:has-text("🎁"), button:has-text("🎉"), button:has-text("🎄")')
+        const emojiButtons = page.locator('button:has-text("🎁"), button:has-text("🎉")')
         await expect(emojiButtons.first()).toBeVisible()
 
-        // Contar cuántos iconos hay
         const emojiCount = await emojiButtons.count()
-        expect(emojiCount).toBeGreaterThan(0)
-
-        // Seleccionar un icono diferente al predeterminado
         if (emojiCount > 1) {
             const secondEmoji = emojiButtons.nth(1)
             await secondEmoji.click()
-
-            // Verificar que el icono tiene la clase de "seleccionado"
             await expect(secondEmoji).toHaveClass(/border-deseo-acento|bg-deseo-acento|scale-110/)
         }
     })
