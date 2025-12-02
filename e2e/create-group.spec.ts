@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { E2E_CONFIG } from './config'
 
 test.describe('Flujo de Creación de Grupo', () => {
     test.setTimeout(60000)
@@ -10,10 +11,10 @@ test.describe('Flujo de Creación de Grupo', () => {
         // Esperar a que el formulario sea visible
         await page.waitForSelector('form', { state: 'visible' })
 
-        // 2. Rellenar credenciales
+        // 2. Rellenar credenciales del usuario E2E
         console.log('Rellenando credenciales...')
-        await page.fill('input[name="email"]', 'juan@test.com')
-        await page.fill('input[name="password"]', 'Test123!')
+        await page.fill('input[name="email"]', E2E_CONFIG.user.email)
+        await page.fill('input[name="password"]', E2E_CONFIG.user.password)
 
         // 3. Enviar formulario
         console.log('Enviando formulario...')
@@ -34,14 +35,21 @@ test.describe('Flujo de Creación de Grupo', () => {
         // Verificar que estamos logueados
         console.log('Login exitoso, verificando URL...')
         await expect(page).toHaveURL('http://localhost:3000/')
+        // Verificar que aparece el botón de cerrar sesión para confirmar que el usuario está autenticado
+        await expect(page.getByText('Cerrar sesión').first()).toBeVisible()
     })
 
     test('Un usuario puede crear un grupo exitosamente y ser redirigido al detalle', async ({ page }) => {
-        // 1. Verificar que estamos en la Home
+        // 1. Verificar que estamos en la Home y navegar a la pestaña de grupos
         await expect(page).toHaveURL('http://localhost:3000/')
+        await page.goto('http://localhost:3000/?tab=groups')
+
+        // Esperar a que se cargue la pestaña de grupos
+        await expect(page.getByRole('heading', { name: 'Mis grupos' })).toBeVisible()
 
         // 2. Hacer clic en el botón "Crear Grupo"
-        const createGroupButton = page.locator('a[href*="/groups/create"], button:has-text("Crear Grupo"), a:has-text("Crear Nuevo Grupo")')
+        // Intentamos varios selectores posibles para ser más robustos
+        const createGroupButton = page.locator('a[title="Crear grupo"], a[href*="/groups/create"], button:has-text("Crear Grupo"), a:has-text("Crear Nuevo Grupo")')
         await expect(createGroupButton.first()).toBeVisible({ timeout: 10000 })
         await createGroupButton.first().click()
 
@@ -99,12 +107,25 @@ test.describe('Flujo de Creación de Grupo', () => {
         if (currentUrl.includes('/groups/') && !currentUrl.includes('/create')) {
             await expect(page.locator('h1, h2, h3').first()).toBeVisible()
         } else {
+            // Si estamos en la home, asegurarnos de estar en la pestaña de grupos
+            if (!currentUrl.includes('tab=groups')) {
+                await page.goto('http://localhost:3000/?tab=groups')
+            } else {
+                // Si ya estábamos, recargar para asegurar que aparezca el nuevo grupo
+                await page.reload()
+            }
+
+            await expect(page.getByRole('heading', { name: 'Mis grupos' })).toBeVisible()
+
             const groupCard = page.locator(`text="${groupName}"`)
-            await expect(groupCard).toBeVisible({ timeout: 5000 })
+            await expect(groupCard).toBeVisible({ timeout: 10000 })
         }
     })
 
     test('El formulario de creación valida el nombre mínimo', async ({ page }) => {
+        // Verificar que estamos logueados antes de navegar
+        await expect(page.getByText('Cerrar sesión').first()).toBeVisible()
+
         await page.goto('http://localhost:3000/groups/create')
 
         const groupNameInput = page.locator('input#groupName, input[name="groupName"]')
@@ -128,6 +149,9 @@ test.describe('Flujo de Creación de Grupo', () => {
     })
 
     test('Permite seleccionar diferentes iconos para el grupo', async ({ page }) => {
+        // Verificar que estamos logueados antes de navegar
+        await expect(page.getByText('Cerrar sesión').first()).toBeVisible()
+
         await page.goto('http://localhost:3000/groups/create')
 
         const emojiButtons = page.locator('button:has-text("🎁"), button:has-text("🎉")')

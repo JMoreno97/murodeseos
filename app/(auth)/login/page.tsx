@@ -33,10 +33,16 @@ function LoginContent() {
         const newEmail = e.target.value
         setEmail(newEmail)
 
-        if (newEmail && !validateEmail(newEmail)) {
-            setEmailError('Por favor, introduce un correo electrónico válido')
-        } else {
+        // Solo limpiar el error si el usuario corrige el email
+        if (emailError && validateEmail(newEmail)) {
             setEmailError('')
+        }
+    }
+
+    // Validar email al perder el foco
+    const handleEmailBlur = () => {
+        if (email && !validateEmail(email)) {
+            setEmailError('Por favor, introduce un correo electrónico válido')
         }
     }
 
@@ -171,6 +177,7 @@ function LoginContent() {
                                     placeholder="tu@ejemplo.com"
                                     value={email}
                                     onChange={handleEmailChange}
+                                    onBlur={handleEmailBlur}
                                 />
                                 {emailError && (
                                     <p className="mt-1 text-sm text-urgencia-coral">{emailError}</p>
