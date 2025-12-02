@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test'
 import { E2E_CONFIG } from './config'
 
+// Le dice a Playwright: "Para este archivo, usa un estado vacío (sin cookies)"
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test.describe('Flujo de Inicio de Sesión', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/login')
