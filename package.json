@@ -13,8 +13,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "seed": "tsx scripts/create-test-users.ts",
-    "seed:clean": "tsx scripts/delete-test-users.ts"
+    "seed": "bun scripts/create-test-users.ts",
+    "seed:clean": "bun scripts/delete-test-users.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
