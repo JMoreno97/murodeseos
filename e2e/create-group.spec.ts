@@ -47,6 +47,7 @@ test.describe('Flujo de Creación de Grupo', () => {
         await expect(submitButton).toBeVisible()
         await submitButton.click()
 
+
         // 7. Verificar pantalla de éxito (NO hay redirección automática)
         const successMessage = page.locator('text=¡Grupo creado!')
         await expect(successMessage).toBeVisible({ timeout: 10000 })
@@ -64,7 +65,13 @@ test.describe('Flujo de Creación de Grupo', () => {
         await page.waitForURL('http://localhost:3000/', { timeout: 10000 })
 
         // 10. Ir a la pestaña de grupos para verificar que el grupo aparece
-        await page.goto('http://localhost:3000/?tab=groups')
+        // 10. Ir a la pestaña de grupos para verificar que el grupo aparece
+        // Usamos click en la UI en lugar de recarga para asegurar que la SPA maneje el estado correctamente
+        // y evitar problemas de caché en WebKit/Mobile Safari con page.goto
+        const groupsTabButton = page.getByRole('button', { name: /Mis grupos|Grupos/i }).first()
+        await expect(groupsTabButton).toBeVisible()
+        await groupsTabButton.click()
+
         await expect(page.getByRole('heading', { name: 'Mis grupos' })).toBeVisible()
 
         const groupCard = page.locator(`text="${groupName}"`)

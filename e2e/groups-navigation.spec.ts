@@ -3,24 +3,13 @@ import { E2E_CONFIG } from './config'
 
 test.describe('Navegación de Grupos', () => {
     test.beforeEach(async ({ page }) => {
-        // Login antes de cada test con usuario E2E
-        await page.goto('http://localhost:3000/login')
+        // Como ya tienes cookies, el servidor te dejará entrar.
+        await page.goto('http://localhost:3000/');
 
-        // Esperar a que el formulario esté listo
-        await page.waitForSelector('input[name="email"]', { state: 'visible' })
-
-        // Rellenar credenciales del usuario E2E
-        await page.fill('input[name="email"]', E2E_CONFIG.user.email)
-        await page.fill('input[name="password"]', E2E_CONFIG.user.password)
-
-        // Enviar formulario
-        await page.click('button[type="submit"]')
-
-        // Esperar a la redirección a la home (el usuario ya tiene perfil completo)
-        await page.waitForURL('http://localhost:3000/', { timeout: 10000 })
-
-        // Verificar que estamos en la home
+        // Verificar que estamos logueados
         await expect(page).toHaveURL('http://localhost:3000/')
+        // Verificar que aparece el botón de cerrar sesión para confirmar que el usuario está autenticado
+        await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
     })
 
     test('Carga la pestaña de grupos directamente usando el parámetro URL', async ({ page }) => {
