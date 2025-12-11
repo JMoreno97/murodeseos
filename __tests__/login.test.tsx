@@ -7,6 +7,14 @@ jest.mock('react', () => ({
     Suspense: ({ children }: { children: React.ReactNode }) => children,
 }))
 
+
+jest.mock('next/link', () => {
+    return ({ children, href }: any) => {
+        return <a href={href}>{children}</a>;
+    };
+})
+
+
 describe('LoginPage', () => {
     it('renders login form', () => {
         render(<LoginPage />)
@@ -19,10 +27,10 @@ describe('LoginPage', () => {
     })
 
     it('shows link to signup page', () => {
-        render(<LoginPage />)
+        // Busca un elemento que sea un link (<a>) y tenga el texto "Regístrate"
+        const signupLink = screen.getByRole('link', { name: /regístrate/i })
 
-        const signupLink = screen.getByText(/regístrate/i)
         expect(signupLink).toBeInTheDocument()
-        expect(signupLink.closest('a')).toHaveAttribute('href', '/signup')
+        expect(signupLink).toHaveAttribute('href', '/signup')
     })
 })
