@@ -47,3 +47,17 @@ jest.mock('@/lib/supabase', () => ({
     })),
   },
 }))
+
+// Mock de Web Share API
+Object.defineProperty(global.navigator, 'share', {
+  writable: true,
+  value: jest.fn(),
+})
+
+// Mock de Clipboard API
+Object.defineProperty(global.navigator, 'clipboard', {
+  writable: true,
+  value: {
+    writeText: jest.fn(),
+  },
+})
