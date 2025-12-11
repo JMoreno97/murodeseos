@@ -27,6 +27,8 @@ describe('LoginPage', () => {
     })
 
     it('shows link to signup page', () => {
+        render(<LoginPage />)
+        
         // Busca un elemento que sea un link (<a>) y tenga el texto "Regístrate"
         const signupLink = screen.getByRole('link', { name: /regístrate/i })
 
