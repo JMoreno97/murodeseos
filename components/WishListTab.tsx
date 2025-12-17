@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { WishlistCard, GiftItem, Priority } from './WishlistCard'
 
@@ -92,7 +92,10 @@ export function WishListTab({ userId }: WishListTabProps) {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<GiftItem | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [sortBy, setSortBy] = useState<'name' | 'price'>('name');
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Form State
     const [formData, setFormData] = useState<Partial<GiftItem>>({});
@@ -369,10 +372,54 @@ export function WishListTab({ userId }: WishListTabProps) {
                                                 value={formData.imageUrl || ''}
                                                 onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                                                 className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                                                disabled={isSaving}
+                                                disabled={isSaving || isUploading}
                                             />
-                                            <div className="text-xs text-zinc-500">
-                                                O selecciona de la galería (Simulado)
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="file"
+                                                    ref={fileInputRef}
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+
+                                                        setIsUploading(true);
+                                                        try {
+                                                            const fileExt = file.name.split('.').pop();
+                                                            const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+                                                            const { error: uploadError } = await supabase.storage
+                                                                .from('wishlist-images')
+                                                                .upload(fileName, file);
+
+                                                            if (uploadError) throw uploadError;
+
+                                                            const { data: { publicUrl } } = supabase.storage
+                                                                .from('wishlist-images')
+                                                                .getPublicUrl(fileName);
+
+                                                            setFormData({ ...formData, imageUrl: publicUrl });
+                                                        } catch (error) {
+                                                            console.error('Error uploading image:', error);
+                                                            alert('Error al subir la imagen');
+                                                        } finally {
+                                                            setIsUploading(false);
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    disabled={isSaving || isUploading}
+                                                    className="text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                                                >
+                                                    <Icons.Upload />
+                                                    {isUploading ? 'Subiendo...' : 'Subir imagen'}
+                                                </button>
+                                                <span className="text-xs text-zinc-400">
+                                                    (Max 5MB)
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
