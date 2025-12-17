@@ -14,6 +14,7 @@ export interface Group {
     id: string;
     name: string;
     icon: string;
+    originalName?: string;
     members: GroupMember[];
 }
 
@@ -24,9 +25,10 @@ interface GroupCardProps {
     onRename?: (groupId: string, currentName: string) => void;
     onDelete?: (groupId: string, groupName: string) => void;
     onMemberEdit?: (memberId: string, newAlias: string) => Promise<boolean>;
+    onGroupAliasEdit?: (groupId: string, newAlias: string) => Promise<boolean>;
 }
 
-export function GroupCard({ group, isAdmin, onShare, onRename, onDelete, onMemberEdit }: GroupCardProps) {
+export function GroupCard({ group, isAdmin, onShare, onRename, onDelete, onMemberEdit, onGroupAliasEdit }: GroupCardProps) {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = React.useState(false);
     const menuRef = React.useRef<HTMLDivElement>(null);
@@ -34,6 +36,10 @@ export function GroupCard({ group, isAdmin, onShare, onRename, onDelete, onMembe
     // Estado para edición en línea
     const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
     const [aliasInput, setAliasInput] = useState("");
+
+    // Estado para edición de alias de grupo
+    const [isEditingGroupName, setIsEditingGroupName] = useState(false);
+    const [groupNameInput, setGroupNameInput] = useState("");
 
     React.useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -101,6 +107,30 @@ export function GroupCard({ group, isAdmin, onShare, onRename, onDelete, onMembe
         setAliasInput("");
     };
 
+    // Group Alias Handlers
+    const startEditingGroupName = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!onGroupAliasEdit) return;
+        setIsEditingGroupName(true);
+        setGroupNameInput(group.name);
+    };
+
+    const saveGroupName = async (e: React.MouseEvent | React.KeyboardEvent) => {
+        e.stopPropagation();
+        if (!onGroupAliasEdit) return;
+
+        const success = await onGroupAliasEdit(group.id, groupNameInput);
+        if (success) {
+            setIsEditingGroupName(false);
+        }
+    };
+
+    const cancelEditingGroupName = (e: React.MouseEvent | React.KeyboardEvent) => {
+        e.stopPropagation();
+        setIsEditingGroupName(false);
+        setGroupNameInput("");
+    };
+
     // Logic for truncating members
     const displayMembers = group.members.slice(0, 3);
     const remainingCount = group.members.length - 3;
@@ -117,9 +147,53 @@ export function GroupCard({ group, isAdmin, onShare, onRename, onDelete, onMembe
                         {group.icon}
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100 leading-tight">
-                            {group.name}
-                        </h3>
+
+                        {isEditingGroupName ? (
+                            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                <input
+                                    type="text"
+                                    value={groupNameInput}
+                                    onChange={(e) => setGroupNameInput(e.target.value)}
+                                    className="font-bold text-lg text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-800 border-b-2 border-indigo-500 focus:outline-none w-full min-w-[150px]"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveGroupName(e);
+                                        if (e.key === 'Escape') cancelEditingGroupName(e);
+                                    }}
+                                    autoFocus
+                                    onClick={e => e.stopPropagation()}
+                                />
+                                <button
+                                    onClick={saveGroupName}
+                                    className="p-1 text-green-600 hover:text-green-700 bg-green-50 dark:bg-green-900/20 rounded"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </button>
+                                <button
+                                    onClick={cancelEditingGroupName}
+                                    className="p-1 text-red-600 hover:text-red-700 bg-red-50 dark:bg-red-900/20 rounded"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </div>
+                        ) : (
+                            <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100 leading-tight flex items-center gap-2 group/title">
+                                {group.name}
+                                {group.originalName && (
+                                    <span className="text-xs font-normal text-zinc-400 italic">
+                                        ({group.originalName})
+                                    </span>
+                                )}
+                                {onGroupAliasEdit && (
+                                    <button
+                                        onClick={startEditingGroupName}
+                                        className="opacity-0 group-hover/title:opacity-100 transition-opacity p-1 text-zinc-400 hover:text-indigo-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded"
+                                        title="Poner apodo al grupo"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                    </button>
+                                )}
+                            </h3>
+                        )}
                         <p className="text-xs text-zinc-400 mt-0.5 font-medium">
                             {group.members.length} participantes
                         </p>

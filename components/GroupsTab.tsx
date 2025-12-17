@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from "next/link";
 import { supabase } from '@/lib/supabase'
 import { GroupCard, Group } from '@/components/GroupCard';
-import { updateGroupName, deleteGroup } from '@/lib/group-utils';
+import { updateGroupName, deleteGroup, setGroupAlias } from '@/lib/group-utils';
 import { getUserAliases, setUserAlias } from '@/lib/aliases';
 
 interface GroupsTabProps {
@@ -30,7 +30,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
         try {
             const { data: myMemberships, error: membershipError } = await supabase
                 .from('group_members')
-                .select('group_id, role')
+                .select('group_id, role, group_alias')
                 .eq('user_id', userId)
 
             if (membershipError) {
@@ -105,9 +105,13 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                         }
                     })
 
+                const myMembership = myMemberships.find(m => m.group_id === g.id);
+                const groupAlias = myMembership?.group_alias;
+
                 return {
                     id: g.id,
-                    name: g.name,
+                    name: groupAlias || g.name,
+                    originalName: groupAlias ? g.name : undefined,
                     icon: g.icon,
                     members: groupMembers
                 }
@@ -234,10 +238,22 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                     ...g,
                     members: g.members.map(m => {
                         if (m.id === memberId) {
+                            const realName = m.originalName || m.name;
+                            const trimmedAlias = newAlias.trim();
+                            const isSameAsOriginal = trimmedAlias === realName;
+
+                            if (!trimmedAlias || isSameAsOriginal) {
+                                return {
+                                    ...m,
+                                    name: realName,
+                                    originalName: undefined
+                                };
+                            }
+
                             return {
                                 ...m,
-                                name: newAlias.trim() || m.originalName || m.name,
-                                originalName: newAlias.trim() ? (m.originalName || m.name) : undefined
+                                name: trimmedAlias,
+                                originalName: realName
                             };
                         }
                         return m;
@@ -247,6 +263,34 @@ export function GroupsTab({ userId }: GroupsTabProps) {
             return success;
         } catch (error) {
             console.error('Error setting alias:', error);
+            return false;
+        }
+    };
+
+    const handleGroupAliasEdit = async (groupId: string, newAlias: string): Promise<boolean> => {
+        try {
+            const success = await setGroupAlias(groupId, userId, newAlias.trim());
+            if (success) {
+                setGroups(groups.map(g => {
+                    if (g.id === groupId) {
+                        const realName = g.originalName || g.name;
+                        const trimmedAlias = newAlias.trim();
+                        const isSameAsOriginal = trimmedAlias === realName;
+
+                        if (!trimmedAlias || isSameAsOriginal) {
+                            return { ...g, name: realName, originalName: undefined };
+                        }
+
+                        return { ...g, name: trimmedAlias, originalName: realName };
+                    }
+                    return g;
+                }));
+                // Invalidate cache
+                sessionStorage.removeItem(`groups_${userId}`);
+            }
+            return success;
+        } catch (error) {
+            console.error('Error setting group alias:', error);
             return false;
         }
     };
@@ -301,6 +345,7 @@ export function GroupsTab({ userId }: GroupsTabProps) {
                                 onRename={openRenameModal}
                                 onDelete={openDeleteModal}
                                 onMemberEdit={handleMemberEdit}
+                                onGroupAliasEdit={handleGroupAliasEdit}
                             />
                         ))}
                     </div>
