@@ -74,3 +74,11 @@ CREATE POLICY "Los usuarios pueden unirse a grupos"
 CREATE POLICY "Los usuarios pueden salir de grupos"
   ON group_members FOR DELETE
   USING (user_id = (select auth.uid()));
+
+-- ACTUALIZACIÓN: Apodos para grupos (Añadido posteriormente)
+ALTER TABLE group_members ADD COLUMN IF NOT EXISTS group_alias TEXT;
+
+-- Política para permitir que los usuarios actualicen sus propios apodos (y otros campos de su membresía)
+CREATE POLICY "Los usuarios pueden actualizar su propia membresía"
+  ON group_members FOR UPDATE
+  USING (user_id = (select auth.uid()));

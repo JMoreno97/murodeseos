@@ -257,3 +257,22 @@ export async function removeMemberFromGroup(groupId: string, userId: string) {
 
     return true
 }
+
+/**
+ * Establece un apodo (alias) para un grupo para el usuario actual
+ */
+export async function setGroupAlias(groupId: string, userId: string, alias: string) {
+    const { error } = await supabase
+        .from('group_members')
+        .update({ group_alias: alias })
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+
+    if (error) {
+        console.error('Error setting group alias:', error)
+        throw new Error('No se pudo establecer el apodo del grupo')
+    }
+
+    return true
+}
+
